@@ -1,0 +1,94 @@
+/* This is a simplified model of mutational signature analysis implemented in BLOG, an open-universe probability modeling language. 
+We suppose that there are a number of mutational processes (represented by the type MutProcess) which may be activate in a patient.
+These mutational processes cause a certain number of mutations (represented by the type Mutation) that can be detected in a patient's genome.
+There are different types of mutations (represented by the type MutCategory), and mutational processes are more likely to cause some types of mutations than others. For simplicity, we suppose that there are only 6 distinct types of mutations in this toy example.
+*/
+
+//object declarations
+type MutProcess;
+type Mutation;
+type MutCategory;
+
+distinct MutProcess MutProcess[3];
+distinct MutCategory MutCategory[6];
+origin MutProcess Source(Mutation);
+
+
+
+// determines whether a mutational process is active in the patient
+random Boolean isActive(MutProcess p) ~ BooleanDistrib(0.1);
+
+// if the process is active, we say it causes Poisson(10) mutations, otherwise it causes none
+random Integer activityHelp(MutProcess p) ~
+  if isActive(p) then
+    Poisson(10)
+  else
+    0;
+
+random Integer Activity(MutProcess p) ~ activityHelp(p);
+  
+#Mutation(Source=proc) ~ Activity(proc);
+
+
+// Declaring the distribution over mutation categories for each mutational process
+// For simplicity, these are implemented as fixed multinomial distributions with distinct peaks. In practice, we would learn these multinomials from data by drawing from a sparse Dirichlet distribution.
+
+fixed RealMatrix proc0vec = [1;1;10;1;1;1];
+random Integer proc0help(Mutation m) ~ Discrete(proc0vec);
+
+random MutCategory proc0Mut(Mutation m) ~ 
+  case proc0help(m) in {
+    0 -> MutCategory[0],
+	1 -> MutCategory[1],
+	2 -> MutCategory[2],
+	3 -> MutCategory[3],
+	4 -> MutCategory[4],
+	5 -> MutCategory[5]
+  };
+
+fixed RealMatrix proc1vec = [1;10;1;1;1;1];  
+random Integer proc1help(Mutation m) ~ Discrete(proc1vec);
+	
+random MutCategory proc1Mut(Mutation m) ~
+  case proc1help(m) in {
+    0 -> MutCategory[0],
+	1 -> MutCategory[1],
+	2 -> MutCategory[2],
+	3 -> MutCategory[3],
+	4 -> MutCategory[4],
+	5 -> MutCategory[5]
+  };
+
+  
+fixed RealMatrix proc2vec = [10;1;1;1;1;1];  
+random Integer proc2help(Mutation m) ~ Discrete(proc2vec);
+	
+random MutCategory proc2Mut(Mutation m) ~
+  case proc2help(m) in {
+    0 -> MutCategory[0],
+	1 -> MutCategory[1],
+	2 -> MutCategory[2],
+	3 -> MutCategory[3],
+	4 -> MutCategory[4],
+	5 -> MutCategory[5]
+  };  
+
+  
+// Assigns each mutation to a category depending on which mutational process generated it
+random MutCategory whichMut(Mutation m) ~
+  case Source(m) in {
+    MutProcess[0] -> proc0Mut(m),
+	MutProcess[1] -> proc1Mut(m),
+	MutProcess[2] -> proc2Mut(m)
+  }
+  ;
+
+  
+  
+random Integer x ~ size({m for Mutation m: whichMut(m)==MutCategory[0]});
+obs x = 4;
+
+//query size({m for Mutation m: whichMut(m)==MutCategory[1]});
+query isActive(MutProcess[2]);
+query isActive(MutProcess[1]);
+query isActive(MutProcess[0]);

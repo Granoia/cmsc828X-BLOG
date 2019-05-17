@@ -1,0 +1,73 @@
+// BLOG model for the classic probability example of drawing balls from an urn (with replacement)
+// modified example from the BLOG manual
+
+// type declarations tell the model what kind of objects are present
+type Ball;
+type Draw;
+
+
+// number statement declares how many of a given object type are present
+// suppose that there are between 2 and 50 balls in the urn
+#Ball ~ UniformInt(2,50);
+
+// declares that there are 8 distinct Draws from the urn
+distinct Draw Draw[8];
+
+
+// declare the probability that a ball in the urn is blue 
+random Boolean isBlue(Ball b) ~ BooleanDistrib(0.01);
+
+// each Draw selects a ball from the urn randomly
+random Ball ballDrawn(Draw d) ~ UniformChoice({b for Ball b});
+
+/*
+// suppose, for some reason, that there is a chance we misidentify the color of the ball
+random Boolean obsBlue(Draw d) ~
+  if isBlue(ballDrawn(d)) then
+    BooleanDistrib(0.95)
+  else
+    BooleanDistrib(0.05);
+*/
+
+// deterministic identification of ball
+random Boolean obsBlue(Draw d) ~
+  if isBlue(ballDrawn(d)) then
+    true
+  else
+    false;
+
+
+// observe certain evidence - in this case, we observe that the first two draws are blue
+obs obsBlue(Draw[0]) = true;
+obs obsBlue(Draw[1]) = true;
+	
+// what is the probability that we drew the same ball twice?
+query ballDrawn(Draw[0]) == ballDrawn(Draw[1]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+obs obsBlue(Draw[0]) = true;
+obs (ballDrawn(Draw[0]) == ballDrawn(Draw[1])) = true;
+obs obsBlue(Draw[2]) = false;
+obs obsBlue(Draw[3]) = false;
+obs obsBlue(Draw[4]) = false;
+obs obsBlue(Draw[5]) = false;
+obs obsBlue(Draw[6]) = false;
+obs obsBlue(Draw[7]) = false;
+
+query size({b for Ball b});
+*/

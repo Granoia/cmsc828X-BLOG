@@ -1,0 +1,95 @@
+// a simplified model of trait inheritence with varying numbers of children, grandchildren, etc
+
+//type declaration and structuring
+type Child;
+type Grandchild;
+type GrGrchild;
+
+// grandchildren come from children, great grandchildren come from grandchildren
+origin Child Parent(Grandchild);
+origin Grandchild Parent(GrGrchild);
+
+
+// set the probability of finding a partner whose thumb is straight
+random Boolean partnerStraightThumb(Child c) ~ BooleanDistrib(0.2);
+random Boolean partnerStraightThumb(Grandchild g) ~ BooleanDistrib(0.1);
+
+// probability that my children have straight thumbs
+random Boolean hasStraightThumb(Child c) ~ BooleanDistrib(0.05);
+
+// incorporates partner finding probability to figure out whether a grandchild will have a straight thumb
+random Real gen1HasSTHelp(Child c) ~
+  case [hasStraightThumb(c), partnerStraightThumb(c)] in {
+    [true, true] -> .95,
+	[true, false] -> 0.5,
+	[false, true] -> 0.5,
+	[false, false] -> 0.05
+  }
+  ;
+
+random Boolean hasStraightThumb(Grandchild g) ~ BooleanDistrib( gen1HasSTHelp( Parent(g) ) );
+
+
+
+// similar to above but for next generation
+random Real gen2HasSTHelp(Grandchild g) ~
+  case [hasStraightThumb(g), partnerStraightThumb(g)] in {
+    [true, true] -> .95,
+	[true, false] -> 0.5,
+	[false, true] -> 0.5,
+	[false, false] -> 0.05
+  }
+  ;
+
+random Boolean hasStraightThumb(GrGrchild h) ~ BooleanDistrib( gen2HasSTHelp( Parent(h) ) );
+
+
+
+// defining the distribution of number of descendants
+
+// suppose I have 3 children
+#Child ~ 3;
+
+
+
+random Boolean wantsKids(Child c) ~ BooleanDistrib(0.8);
+
+random Boolean wantsKids(Grandchild g) ~ BooleanDistrib(0.6);
+
+// the probability that my kids have kids is encoded by this function
+random Integer Procreate(Child c) ~
+  if wantsKids(c) then
+    Poisson(3)
+  else
+    0;
+
+// the probability that my grandchildren have kids is encoded by this function
+random Integer Procreate(Grandchild g) ~
+  if wantsKids(g) then
+    Poisson(2)
+  else
+    0;
+
+
+#Grandchild(Parent=p) ~ Procreate(p);
+
+#GrGrchild(Parent=p) ~ Procreate(p);
+
+
+
+
+random Boolean atLeastXST(Integer x) ~ 
+  if size({h for GrGrchild h: hasStraightThumb(h)==true}) >=x then
+    true
+  else
+    false
+  ;
+
+
+//random Integer y ~ size({c for Child c: 
+  
+random Integer x ~ size({h for GrGrchild h});
+obs x = 20;
+
+
+query size({h for GrGrchild h: hasStraightThumb(h)==true});
